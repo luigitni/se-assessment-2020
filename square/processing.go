@@ -30,11 +30,11 @@ const NotifyChannel = "__sq_notify_chan"
 type JobState string
 
 const (
-	JobStateRunning    = "__running" // the processing is currently running
-	JobStatePaused     = "__paused" // the process has been paused
-	JobStateNotRunning = "__not_running" // the process is not running at the moment
+	JobStateRunning      = "__running"       // the processing is currently running
+	JobStatePaused       = "__paused"        // the process has been paused
+	JobStateNotRunning   = "__not_running"   // the process is not running at the moment
 	JobStateNeverStarted = "__never_started" // pristine state: no process has ever started. Used in Stat
-	JobStateUndefined = "__undefined" // unable to determine the job state. this happens in case of database failure
+	JobStateUndefined    = "__undefined"     // unable to determine the job state. this happens in case of database failure
 )
 
 var ErrProcessDone = errors.New("square: done processing records")
@@ -55,7 +55,6 @@ func GetJobState(db *sqlx.DB) JobState {
 	if count == 0 {
 		return JobStateNeverStarted
 	}
-
 
 	var paused *time.Time
 
@@ -302,4 +301,15 @@ func processBatches(db *sqlx.DB, jid int64) error {
 	}
 
 	return nil
+}
+
+func processedRows(db *sqlx.DB) (int64, error) {
+	var count int64
+	res := db.QueryRow("SELECT COUNT(id) FROM processables WHERE result IS NOT NULL")
+	if err := res.Scan(&count); err != nil {
+		es := fmt.Errorf("error reading from database: %s", err.Error())
+		return count, es
+	}
+
+	return count, nil
 }

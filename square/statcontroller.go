@@ -3,7 +3,6 @@ package square
 import (
 	"context"
 	"encoding/json"
-	"fmt"
 	"github.com/jmoiron/sqlx"
 	"net/http"
 )
@@ -36,18 +35,16 @@ func (h *StatController) Process(ctx context.Context, w http.ResponseWriter) {
 		return
 	}
 
-	count := 0
-	res := db.QueryRowContext(ctx, "SELECT COUNT(id) FROM processables WHERE result IS NOT NULL")
-	if err := res.Scan(&count); err != nil {
-		es := fmt.Sprintf("error reading from database: %s", err.Error())
-		http.Error(w, es, http.StatusInternalServerError)
+	count, err := processedRows(db)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 
 	// return the count of already processed items as a json object
 	w.Header().Set("Content-Type", "application/json; charset=UTF-8")
 	if err := json.NewEncoder(w).Encode(struct {
-		Count int `json:"count"`
+		Count int64 `json:"count"`
 	}{count}); err != nil {
 		panic(err)
 	}
